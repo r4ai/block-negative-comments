@@ -81,12 +81,14 @@ class BlockNegativeComments {
   private ytdAppObserver: MutationObserver
   private ytdLiveChatObserver: MutationObserver
 
-  protected mosaicDuration: number = 3000
+  private logger: Logger
+
   private processedComments: Set<HTMLElement> = new Set()
   private blockedComments: Set<HTMLElement> = new Set()
   private processingComments: TaskQueue = new TaskQueue()
-  private logger: Logger
-
+  
+  public confidenceThreshold: number
+  
   private running: boolean = false
 
   private selectors = {
@@ -99,8 +101,12 @@ class BlockNegativeComments {
     ytLiveChatTextMessageRendererMessage: "#message",
   }
 
-  constructor(logger: Logger) {
+  constructor({
+    logger,
+    confidenceThreshold,
+  }: { logger: Logger; confidenceThreshold: number }) {
     this.logger = logger
+    this.confidenceThreshold = confidenceThreshold
 
     let isFirstLoad = true
     this.ytdLiveChatObserver = new MutationObserver((mutations) => {
@@ -237,7 +243,7 @@ class BlockNegativeComments {
         `${commentElement.textContent?.substring(0, 20)}...`,
         res,
       )
-      if (res.sentiment === "negative" && res.confidence > 0.5) {
+      if (res.sentiment === "negative" && res.confidence > this.confidenceThreshold) {
         this.logger.debug(
           `Blocking negative comment: ${commentElement.textContent}`,
         )
@@ -253,11 +259,6 @@ class BlockNegativeComments {
       "Applying mosaic to comment:",
       `${commentElement.textContent?.substring(0, 20)}...`,
     )
-  }
-
-  // モザイク持続時間を設定
-  public setMosaicDuration(duration: number): void {
-    this.mosaicDuration = duration
   }
 
   public stop() {
@@ -285,7 +286,8 @@ export default defineContentScript({
       warn: true,
       error: true,
     })
-    const manager = new BlockNegativeComments(logger)
+    const confidenceThreshold = await storage.confidenceThreshold.getValue()
+    const manager = new BlockNegativeComments({ logger, confidenceThreshold })
     if (await storage.enabled.getValue()) {
       manager.start()
     }
@@ -296,6 +298,12 @@ export default defineContentScript({
       } else {
         manager.stop()
       }
+    })
+
+    storage.confidenceThreshold.watch((threshold) => {
+      manager.confidenceThreshold = threshold
+      logger.debug(
+        `Confidence threshold updated to: ${threshold}`,)
     })
 
     logger.log("YouTubeコメントモザイク機能が初期化されました")

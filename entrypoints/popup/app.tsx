@@ -12,8 +12,6 @@ const EnabledSwitch = () => {
     queryKey: [storage.enabled.key],
     queryFn: storage.enabled.getValue,
     refetchOnMount: true,
-    staleTime: 0,
-    gcTime: 0,
   })
   const enabledMutation = useMutation({
     mutationFn: (enabled: boolean) => storage.enabled.setValue(enabled),
@@ -88,17 +86,30 @@ const ModelSelect = () => {
 }
 
 const ConfidenceThresholdSlider = () => {
-  const [threshold, setThreshold] = useState(0.5)
+  const queryClient = useQueryClient()
+  const threshold = useQuery({
+    queryKey: [storage.confidenceThreshold.key],
+    queryFn: storage.confidenceThreshold.getValue,
+    refetchOnMount: true,
+  })
+  const thresholdMutation = useMutation({
+    mutationFn: (value: number) => storage.confidenceThreshold.setValue(value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [storage.confidenceThreshold.key],
+      })
+    },
+  })
 
   return (
     <Slider
       label="Confidence Threshold"
-      defaultValue={threshold}
+      value={threshold.data}
       minValue={0}
       maxValue={1}
       step={0.01}
       onChange={(value) =>
-        setThreshold(Array.isArray(value) ? value[0] : value)
+        thresholdMutation.mutate(Array.isArray(value) ? value[0] : value)
       }
     />
   )
