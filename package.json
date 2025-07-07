@@ -19,6 +19,7 @@
   "dependencies": {
     "@huggingface/transformers": "^3.6.1",
     "@mlc-ai/web-llm": "^0.2.79",
+    "@webext-core/messaging": "^2.3.0",
     "dedent": "^1.6.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

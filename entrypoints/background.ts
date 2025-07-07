@@ -3,6 +3,7 @@ import {
   type TextGenerationPipeline,
 } from "@huggingface/transformers"
 import dedent from "dedent"
+import { type AnalyzeSentimentResult, onMessage } from "@/utils/messaging"
 
 export default defineBackground(() => {
   let generator: TextGenerationPipeline | null = null
@@ -24,7 +25,7 @@ export default defineBackground(() => {
     return generator
   }
 
-  const parseOutput = (output?: string) => {
+  const parseOutput = (output?: string): AnalyzeSentimentResult => {
     if (!output) {
       throw new Error("Output is empty or undefined")
     }
@@ -50,7 +51,7 @@ export default defineBackground(() => {
       )
     }
 
-    const sentiment = sentimentMatch[1]
+    const sentiment = sentimentMatch[1] as "positive" | "negative" | "neutral"
     const confidence = parseFloat(confidenceMatch[1])
 
     if (Number.isNaN(confidence) || confidence < 0 || confidence > 1) {
@@ -72,54 +73,45 @@ export default defineBackground(() => {
     }
   }
 
-  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "analyze-sentiment") {
-      const generating = async () => {
-        const generator = await initPipeline()
-        const messages = [
-          {
-            role: "system",
-            content: dedent`
+  onMessage("analyzeSentiment", async ({ data: { comment }, sender }) => {
+    const generator = await initPipeline()
+    const messages = [
+      {
+        role: "system",
+        content: dedent`
               You are a helpful assistant that analyzes the sentiment of text.
               Especially, you detect negative comments about F1 drivers.
             `,
-          },
-          {
-            role: "user",
-            content: dedent`
+      },
+      {
+        role: "user",
+        content: dedent`
               Analyze the sentiment of the input text and return the result in following format:
               
               sentiment:positive|negative|neutral
               confidence:0.0-1.0
 
-              Input: ${message.text}
+              Input: ${comment}
 
               Output:
-              {
             `,
-          },
-        ]
-        const result = await generator(messages, {
-          max_new_tokens: 256,
-          do_sample: false,
-        })
-        const outputText =
-          "generated_text" in result[0] &&
-          Array.isArray(result[0].generated_text)
-            ? result[0].generated_text.at(-1)?.content
-            : undefined
-        const output = parseOutput(outputText)
-        console.group("Sentiment Analysis Result")
-        console.log("Input:", message.text)
-        console.log("Output:", outputText)
-        console.log("Parsed Result:", output)
-        console.log("Sender:", sender)
-        console.groupEnd()
-        return output
-      }
-      generating().then((result) => sendResponse(result))
-    }
-
-    return true
+      },
+    ]
+    const result = await generator(messages, {
+      max_new_tokens: 256,
+      do_sample: false,
+    })
+    const outputText =
+      "generated_text" in result[0] && Array.isArray(result[0].generated_text)
+        ? result[0].generated_text.at(-1)?.content
+        : undefined
+    const output = parseOutput(outputText)
+    console.group("Sentiment Analysis Result")
+    console.log("Input:", comment)
+    console.log("Output:", outputText)
+    console.log("Parsed Result:", output)
+    console.log("Sender:", sender)
+    console.groupEnd()
+    return output
   })
 })

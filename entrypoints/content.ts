@@ -1,4 +1,5 @@
 import dedent from "dedent"
+import { sendMessage } from "@/utils/messaging"
 
 class Logger {
   private filters = {
@@ -228,13 +229,7 @@ class BlockNegativeComments {
         .querySelector(this.selectors.ytLiveChatTextMessageRendererMessage)
         ?.textContent?.trim() ?? ""
     this.processingComments.push(async () => {
-      const res: {
-        sentiment: "positive" | "negative" | "neutral"
-        confidence: number
-      } = await browser.runtime.sendMessage({
-        type: "analyze-sentiment",
-        text: comment,
-      })
+      const res = await sendMessage("analyzeSentiment", { comment })
       this.logger.debug(
         `Sentiment Analysis Result for comment:`,
         `${commentElement.textContent?.substring(0, 20)}...`,
