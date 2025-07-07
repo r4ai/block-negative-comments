@@ -1,5 +1,6 @@
 import dedent from "dedent"
 import { sendMessage } from "@/utils/messaging"
+import * as storage from "@/utils/storage"
 
 class Logger {
   private filters = {
@@ -85,6 +86,8 @@ class BlockNegativeComments {
   private blockedComments: Set<HTMLElement> = new Set()
   private processingComments: TaskQueue = new TaskQueue()
   private logger: Logger
+
+  private running: boolean = false
 
   private selectors = {
     ytdApp: "ytd-app",
@@ -194,8 +197,6 @@ class BlockNegativeComments {
         }
       })
     })
-
-    this.startObserving()
   }
 
   private startObserving(): void {
@@ -205,6 +206,7 @@ class BlockNegativeComments {
         childList: true,
         subtree: true,
       })
+      this.running = true
       this.logger.debug(`Started observing ${this.selectors.ytdApp} element`)
     } else {
       this.logger.error(`Failed to find ${this.selectors.ytdApp} element`)
@@ -258,20 +260,19 @@ class BlockNegativeComments {
     this.mosaicDuration = duration
   }
 
-  // 監視を停止
-  public stop(): void {
-    if (this.ytdAppObserver) {
+  public stop() {
+    if (this.running) {
       this.ytdAppObserver.disconnect()
-      this.logger.log("監視停止")
+      this.ytdLiveChatObserver.disconnect()
+      this.running = false
+      this.logger.log("Stopped observing YouTube Live Chat")
     }
   }
 
-  // 監視を再開
-  public restart(): void {
-    this.stop()
-    this.processedComments.clear()
-    this.startObserving()
-    this.logger.log("監視再開")
+  public start() {
+    if (!this.running) {
+      this.startObserving()
+    }
   }
 }
 
@@ -284,7 +285,18 @@ export default defineContentScript({
       warn: true,
       error: true,
     })
-    const _manager = new BlockNegativeComments(logger)
+    const manager = new BlockNegativeComments(logger)
+    if (await storage.enabled.getValue()) {
+      manager.start()
+    }
+
+    storage.enabled.watch((enabled) => {
+      if (enabled) {
+        manager.start()
+      } else {
+        manager.stop()
+      }
+    })
 
     logger.log("YouTubeコメントモザイク機能が初期化されました")
   },

@@ -2,7 +2,39 @@ import { Accordion, AccordionItem } from "@heroui/accordion"
 import { Select, SelectItem } from "@heroui/select"
 import { Slider } from "@heroui/slider"
 import { Switch } from "@heroui/switch"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTheme } from "next-themes"
+import * as storage from "@/utils/storage"
+
+const EnabledSwitch = () => {
+  const queryClient = useQueryClient()
+  const enabled = useQuery({
+    queryKey: [storage.enabled.key],
+    queryFn: storage.enabled.getValue,
+    refetchOnMount: true,
+    staleTime: 0,
+    gcTime: 0,
+  })
+  const enabledMutation = useMutation({
+    mutationFn: (enabled: boolean) => storage.enabled.setValue(enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [storage.enabled.key] })
+    },
+  })
+
+  return (
+    <Switch
+      size="md"
+      disabled={enabled.isLoading}
+      isSelected={enabled.data}
+      onValueChange={(enabled) => {
+        enabledMutation.mutate(enabled)
+      }}
+    >
+      <span className="text-sm text-foreground-700">Enable Blocking</span>
+    </Switch>
+  )
+}
 
 const Header = () => {
   return (
@@ -12,9 +44,7 @@ const Header = () => {
         A browser extension to block negative comments on YouTube Live Chat.
       </p>
       <div className="flex items-center mt-4">
-        <Switch size="md" defaultChecked>
-          <span className="text-sm text-foreground-700">Enable Blocking</span>
-        </Switch>
+        <EnabledSwitch />
       </div>
     </div>
   )
