@@ -292,7 +292,7 @@ export default defineContentScript({
 
     storage.enabled.watch((enabled) => {
       if (enabled) {
-        manager.start()
+        location.reload()
       } else {
         manager.stop()
       }
