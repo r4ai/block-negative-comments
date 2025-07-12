@@ -3,7 +3,7 @@ import type {
   AnalysisResult,
   GenerateParameters,
   GenerateResult,
-  ModelName,
+  Model,
   Prompts,
 } from "@/types"
 import TransformerWorker from "../worker?worker"
@@ -23,11 +23,11 @@ export const useTransformer = () => {
   const postMessage = (data: GenerateParameters) =>
     worker.current?.postMessage(data)
 
-  const analyze = (modelName: ModelName, prompts: Prompts, text: string) => {
+  const analyze = (model: Model, text: string, prompts?: Prompts) => {
     setIsAnalyzing(true)
     postMessage({
       method: "generate",
-      model: modelName,
+      model,
       prompts,
       text,
     })
@@ -47,22 +47,8 @@ export const useTransformer = () => {
           setIsModelLoading(false)
           break
         case "generated": {
-          console.log("Generated text:", data.outputText)
-          const analysisResult: AnalysisResult = {
-            id: Date.now().toString(),
-            timestamp: new Date().toISOString(),
-            model: data.model,
-            inputText: data.inputText,
-            outputText: data.outputText,
-            result: {
-              sentiment: data.sentiment,
-              confidence: data.confidence,
-            },
-            systemPrompt: data.prompts[0].content,
-            userPrompt: data.prompts[1].content,
-          }
-          setAnalysisResult(analysisResult)
-          saveHistory((prev) => [analysisResult, ...prev])
+          setAnalysisResult(data.result)
+          saveHistory((prev) => [data.result, ...prev])
           setIsAnalyzing(false)
           break
         }

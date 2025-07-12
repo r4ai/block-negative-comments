@@ -23,7 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { useTransformer } from "@/hooks/use-transformer"
-import { type AnalysisResult, MODELS, type ModelName } from "@/types"
+import { type AnalysisResult, MODELS, type Model } from "@/types"
 
 const DEFAULT_SYSTEM_PROMPT = dedent`
               You are a helpful assistant that analyzes the sentiment of text.
@@ -41,8 +41,7 @@ const DEFAULT_USER_PROMPT = dedent`
             `
 
 export const SentimentAnalysis = () => {
-  const [selectedModel, setSelectedModel] =
-    useState<ModelName>("bert-base-japanese")
+  const [selectedModel, setSelectedModel] = useState<Model>(MODELS[0])
   const [inputText, setInputText] = useState("")
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT)
   const [userPrompt, setUserPrompt] = useState(DEFAULT_USER_PROMPT)
@@ -56,24 +55,12 @@ export const SentimentAnalysis = () => {
     clearHistory,
   } = useTransformer()
 
-  const selectedModelInfo = MODELS.find((m) => m.value === selectedModel)
-  const isLLMModel = selectedModelInfo?.type === "llm"
-
   const performAnalysis = async () => {
     if (!inputText.trim()) return
-
-    if (isLLMModel) {
-      analyze(
-        selectedModelInfo.value,
-        [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        inputText,
-      ) ?? "No result generated."
-    } else {
-      // TODO: Implement non-LLM model analysis
-    }
+    analyze(selectedModel, inputText, [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ])
   }
 
   // 履歴をJSONでダウンロード
@@ -91,12 +78,14 @@ export const SentimentAnalysis = () => {
   }
 
   // 履歴から結果を再表示
-  const loadFromHistory = (item: AnalysisResult) => {
-    setSelectedModel(item.model)
-    setInputText(item.inputText)
+  const loadFromHistory = <M extends Model>(item: AnalysisResult<M>) => {
+    setSelectedModel(
+      MODELS.find((m) => m.value === item.model.value) ?? MODELS[0],
+    )
+    setInputText(item.text)
     setAnalysisResult(item)
-    if (item.systemPrompt) setSystemPrompt(item.systemPrompt)
-    if (item.userPrompt) setUserPrompt(item.userPrompt)
+    if (item.prompts) setSystemPrompt(item.prompts.system)
+    if (item.prompts) setUserPrompt(item.prompts.user)
   }
 
   return (
@@ -116,10 +105,11 @@ export const SentimentAnalysis = () => {
               <div className="space-y-2">
                 <Label htmlFor="model">分析モデル</Label>
                 <Select
-                  value={selectedModel}
+                  value={selectedModel.value}
                   onValueChange={(value) => {
-                    if (MODELS.some((m) => m.value === value)) {
-                      setSelectedModel(value as ModelName)
+                    const model = MODELS.find((m) => m.value === value)
+                    if (model) {
+                      setSelectedModel(model)
                     } else {
                       console.warn(`Unknown model selected: ${value}`)
                     }
@@ -144,7 +134,7 @@ export const SentimentAnalysis = () => {
               </div>
 
               {/* LLMモデル選択時のプロンプト設定 */}
-              {isLLMModel && (
+              {selectedModel.task === "text-generation" && (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                   <h4 className="font-medium">プロンプト設定</h4>
                   <div className="space-y-2">
@@ -258,7 +248,7 @@ export const SentimentAnalysis = () => {
                     {history.map((item) => (
                       <Card
                         key={item.id}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors py-0"
                       >
                         <CardContent
                           className="p-4"
@@ -267,10 +257,7 @@ export const SentimentAnalysis = () => {
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <Badge variant="secondary">
-                                {
-                                  MODELS.find((m) => m.value === item.model)
-                                    ?.label
-                                }
+                                {item.model.label}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(item.timestamp).toLocaleString(
@@ -281,21 +268,36 @@ export const SentimentAnalysis = () => {
                             <div className="text-sm">
                               <strong>入力:</strong>
                               <p className="text-muted-foreground line-clamp-2 mt-1">
-                                {item.outputText}
+                                {item.text}
                               </p>
                             </div>
                             <Separator />
                             <div className="text-sm">
                               <strong>結果:</strong>
-                              <p className="mt-1">
-                                <span className="font-semibold">
-                                  感情: {item.result.sentiment}
-                                </span>
-                                <br />
-                                <span className="text-muted-foreground">
-                                  信頼度: {item.result.confidence}
-                                </span>
-                              </p>
+                              <div className="mt-1 flex flex-col gap-1">
+                                {item.model.value ===
+                                "tabularisai/multilingual-sentiment-analysis" ? (
+                                  <>
+                                    <span className="font-semibold">
+                                      sentiment: {item.output.sentiment}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      score:{" "}
+                                      {"score" in item.output &&
+                                        Number(item.output.score).toFixed(2)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-semibold">
+                                      sentiment: {item.output.sentiment}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      confidence: {item.output.confidence}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </CardContent>

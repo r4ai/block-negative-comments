@@ -12,7 +12,7 @@ export const useHistory = () => {
       try {
         setHistory(JSON.parse(savedHistory))
       } catch (error) {
-        console.error("Failed to parse history from localStorage:", error)
+        console.warn("Failed to parse history from localStorage:", error)
       }
     }
   }, [])
@@ -20,9 +20,10 @@ export const useHistory = () => {
   const saveHistory = (value: React.SetStateAction<AnalysisResult[]>) => {
     setHistory((prev) => {
       const newHistory = typeof value === "function" ? value(prev) : value
+      console.log(newHistory)
       localStorage.setItem(
         SENTIMENT_ANALYSIS_HISTORY_KEY,
-        JSON.stringify(value),
+        JSON.stringify(newHistory),
       )
       return newHistory
     })
