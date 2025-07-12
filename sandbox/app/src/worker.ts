@@ -2,8 +2,8 @@ import {
   pipeline,
   type TextGenerationPipeline,
 } from "@huggingface/transformers"
-import type { GenerateParameters, GenerateResult } from "./types"
 import dedent from "dedent"
+import type { GenerateParameters, GenerateResult } from "./types"
 
 let generator: undefined | { name: string; pipeline: TextGenerationPipeline }
 

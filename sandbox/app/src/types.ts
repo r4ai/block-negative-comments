@@ -20,6 +20,20 @@ export type Prompts = [
   { role: "user"; content: string },
 ]
 
+export type AnalysisResult = {
+  id: string
+  timestamp: string
+  model: ModelName
+  inputText: string
+  outputText: string
+  result: {
+    sentiment: (GenerateResult & { status: "generated" })["sentiment"]
+    confidence: (GenerateResult & { status: "generated" })["confidence"]
+  }
+  systemPrompt?: string
+  userPrompt?: string
+}
+
 export type GenerateParameters =
   | {
       method: "generate"

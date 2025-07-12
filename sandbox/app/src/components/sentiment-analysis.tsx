@@ -1,5 +1,6 @@
+import dedent from "dedent"
 import { Download, History, Play, Trash2 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,31 +22,8 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  type GenerateParameters,
-  type GenerateResult,
-  type Prompts,
-  MODELS,
-  type ModelName,
-} from "@/types"
-import TransformerWorker from "../worker?worker"
-import dedent from "dedent"
-
-type AnalysisResult = {
-  id: string
-  timestamp: string
-  model: ModelName
-  inputText: string
-  outputText: string
-  result: {
-    sentiment: (GenerateResult & { status: "generated" })["sentiment"]
-    confidence: (GenerateResult & { status: "generated" })["confidence"]
-  }
-  systemPrompt?: string
-  userPrompt?: string
-}
-
-const SENTIMENT_ANALYSIS_HISTORY_KEY = "sentiment-analysis-history"
+import { useTransformer } from "@/hooks/use-transformer"
+import { type AnalysisResult, MODELS, type ModelName } from "@/types"
 
 const DEFAULT_SYSTEM_PROMPT = dedent`
               You are a helpful assistant that analyzes the sentiment of text.
@@ -61,122 +39,6 @@ const DEFAULT_USER_PROMPT = dedent`
 
               Output:
             `
-
-const useHistory = () => {
-  const [history, setHistory] = useState<AnalysisResult[]>([])
-
-  useEffect(() => {
-    const savedHistory = localStorage.getItem(SENTIMENT_ANALYSIS_HISTORY_KEY)
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory))
-      } catch (error) {
-        console.error("Failed to parse history from localStorage:", error)
-      }
-    }
-  }, [])
-
-  const saveHistory = (value: React.SetStateAction<AnalysisResult[]>) => {
-    setHistory((prev) => {
-      const newHistory = typeof value === "function" ? value(prev) : value
-      localStorage.setItem(
-        SENTIMENT_ANALYSIS_HISTORY_KEY,
-        JSON.stringify(value),
-      )
-      return newHistory
-    })
-  }
-
-  const clearHistory = () => {
-    localStorage.removeItem(SENTIMENT_ANALYSIS_HISTORY_KEY)
-    setHistory([])
-  }
-
-  return { history, setHistory, saveHistory, clearHistory }
-}
-
-const useTransformer = () => {
-  const worker = useRef<Worker | null>(null)
-
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
-    null,
-  )
-  const { history, clearHistory, saveHistory } = useHistory()
-
-  const [isModelLoading, setIsModelLoading] = useState(false)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-
-  const postMessage = (data: GenerateParameters) =>
-    worker.current?.postMessage(data)
-
-  const analyze = (modelName: ModelName, prompts: Prompts, text: string) => {
-    setIsAnalyzing(true)
-    postMessage({
-      method: "generate",
-      model: modelName,
-      prompts,
-      text,
-    })
-  }
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: This effect runs only once on mount
-  useEffect(() => {
-    worker.current ??= new TransformerWorker()
-
-    const onMessageReceived = (e: MessageEvent) => {
-      const data: GenerateResult = e.data
-      switch (data.status) {
-        case "start-initialization":
-          setIsModelLoading(true)
-          break
-        case "end-initialization":
-          setIsModelLoading(false)
-          break
-        case "generated": {
-          console.log("Generated text:", data.outputText)
-          const analysisResult: AnalysisResult = {
-            id: Date.now().toString(),
-            timestamp: new Date().toISOString(),
-            model: data.model,
-            inputText: data.inputText,
-            outputText: data.outputText,
-            result: {
-              sentiment: data.sentiment,
-              confidence: data.confidence,
-            },
-            systemPrompt: data.prompts[0].content,
-            userPrompt: data.prompts[1].content,
-          }
-          setAnalysisResult(analysisResult)
-          saveHistory((prev) => [analysisResult, ...prev])
-          setIsAnalyzing(false)
-          break
-        }
-        case "progress":
-          console.log("Progress:", data.progress)
-          break
-        default:
-          console.warn("Unknown message received:", data)
-          break
-      }
-    }
-
-    worker.current.addEventListener("message", onMessageReceived)
-
-    return () =>
-      worker.current?.removeEventListener("message", onMessageReceived)
-  }, [])
-
-  return {
-    isModelLoading,
-    isAnalyzing,
-    analyze,
-    analysisResult,
-    setAnalysisResult,
-    history,
-    clearHistory,
-  }
-}
 
 export const SentimentAnalysis = () => {
   const [selectedModel, setSelectedModel] =
