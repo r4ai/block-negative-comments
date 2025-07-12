@@ -16,6 +16,9 @@
     "check": "biome check .",
     "check:write": "biome check --write ."
   },
+  "workspaces": [
+    "sandbox/app"
+  ],
   "dependencies": {
     "@heroui/accordion": "^2.2.20-beta.2",
     "@heroui/react": "^2.8.0-beta.13",

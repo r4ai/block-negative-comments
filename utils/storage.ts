@@ -8,5 +8,5 @@ export const confidenceThreshold = storage.defineItem<number>(
   "local:confidenceThreshold",
   {
     fallback: 0.5,
-  }
+  },
 )

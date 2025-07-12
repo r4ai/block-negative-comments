@@ -86,9 +86,9 @@ class BlockNegativeComments {
   private processedComments: Set<HTMLElement> = new Set()
   private blockedComments: Set<HTMLElement> = new Set()
   private processingComments: TaskQueue = new TaskQueue()
-  
+
   public confidenceThreshold: number
-  
+
   private running: boolean = false
 
   private selectors = {
@@ -243,7 +243,10 @@ class BlockNegativeComments {
         `${commentElement.textContent?.substring(0, 20)}...`,
         res,
       )
-      if (res.sentiment === "negative" && res.confidence > this.confidenceThreshold) {
+      if (
+        res.sentiment === "negative" &&
+        res.confidence > this.confidenceThreshold
+      ) {
         this.logger.debug(
           `Blocking negative comment: ${commentElement.textContent}`,
         )
@@ -302,8 +305,7 @@ export default defineContentScript({
 
     storage.confidenceThreshold.watch((threshold) => {
       manager.confidenceThreshold = threshold
-      logger.debug(
-        `Confidence threshold updated to: ${threshold}`,)
+      logger.debug(`Confidence threshold updated to: ${threshold}`)
     })
 
     logger.log("YouTubeコメントモザイク機能が初期化されました")
