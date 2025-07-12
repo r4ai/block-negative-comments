@@ -4,19 +4,20 @@ import { Slider } from "@heroui/slider"
 import { Switch } from "@heroui/switch"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTheme } from "next-themes"
-import * as storage from "@/utils/storage"
+import { generalSettings, modelSettings } from "@/utils/storage"
+import { type Model, MODELS } from "@/utils/messaging"
 
 const EnabledSwitch = () => {
   const queryClient = useQueryClient()
   const enabled = useQuery({
-    queryKey: [storage.enabled.key],
-    queryFn: storage.enabled.getValue,
+    queryKey: [generalSettings.enabled.key],
+    queryFn: generalSettings.enabled.getValue,
     refetchOnMount: true,
   })
   const enabledMutation = useMutation({
-    mutationFn: (enabled: boolean) => storage.enabled.setValue(enabled),
+    mutationFn: (enabled: boolean) => generalSettings.enabled.setValue(enabled),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [storage.enabled.key] })
+      queryClient.invalidateQueries({ queryKey: [generalSettings.enabled.key] })
     },
   })
 
@@ -67,36 +68,90 @@ const SelectColorSchema = () => {
   )
 }
 
-const ModelSelect = () => {
-  const [model, setModel] = useState("phi-3.5-mini-instruct")
+const useModel = () => {
+  const queryClient = useQueryClient()
+  const modelQueryKey = [generalSettings.selectedModel.key]
+  const query = useQuery({
+    queryKey: modelQueryKey,
+    queryFn: generalSettings.selectedModel.getValue,
+    refetchOnMount: true,
+  })
+  const mutation = useMutation({
+    mutationFn: async (modelName: Model["name"]) => {
+      const model = Object.values(MODELS).find((m) => m.name === modelName)
+      if (!model) {
+        throw new Error(`Model ${modelName} not found`)
+      }
+      await generalSettings.selectedModel.setValue(model)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: modelQueryKey,
+      })
+    },
+  })
 
+  return { query, mutation }
+}
+
+const ModelSelect = ({
+  modelName,
+  onChange,
+}: {
+  modelName?: Model["name"]
+  onChange: (value: Model["name"]) => void
+}) => {
   return (
     <Select
       label="Model"
       labelPlacement="outside"
-      selectedKeys={[model]}
+      selectedKeys={modelName ? [modelName] : []}
       selectionMode="single"
       onChange={(e) => {
-        setModel(e.target.value)
+        if (Object.values(MODELS).some((m) => m.name === e.target.value)) {
+          onChange(e.target.value as Model["name"])
+        } else {
+          console.warn(`Model ${e.target.value} not found`)
+        }
       }}
     >
-      <SelectItem key="phi-3.5-mini-instruct">Phi 3.5 Mini Instruct</SelectItem>
+      {Object.values(MODELS).map((model) => (
+        <SelectItem key={model.name}>{model.name}</SelectItem>
+      ))}
     </Select>
   )
 }
 
 const ConfidenceThresholdSlider = () => {
   const queryClient = useQueryClient()
+  const thresholdQueryKey = [
+    modelSettings["onnx-community/Phi-3.5-mini-instruct-onnx-web"].key,
+    "confidenceThreshold",
+  ]
   const threshold = useQuery({
-    queryKey: [storage.confidenceThreshold.key],
-    queryFn: storage.confidenceThreshold.getValue,
+    queryKey: thresholdQueryKey,
+    queryFn: () =>
+      modelSettings["onnx-community/Phi-3.5-mini-instruct-onnx-web"]
+        .getValue()
+        .then((data) => data.confidenceThreshold),
     refetchOnMount: true,
   })
   const thresholdMutation = useMutation({
-    mutationFn: (value: number) => storage.confidenceThreshold.setValue(value),
+    mutationFn: async (value: number) => {
+      const currentSettings =
+        await modelSettings[
+          "onnx-community/Phi-3.5-mini-instruct-onnx-web"
+        ].getValue()
+      return modelSettings[
+        "onnx-community/Phi-3.5-mini-instruct-onnx-web"
+      ].setValue({
+        ...currentSettings,
+        confidenceThreshold: value,
+      })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [storage.confidenceThreshold.key],
+        queryKey: thresholdQueryKey,
       })
     },
   })
@@ -123,11 +178,19 @@ const AppearanceSettings = () => {
   )
 }
 
-const BlockSettings = () => {
+const ModelSettings = () => {
+  const model = useModel()
+
   return (
     <div className="flex flex-col pb-2 gap-4">
-      <ModelSelect />
-      <ConfidenceThresholdSlider />
+      <ModelSelect
+        modelName={model.query.data?.name}
+        onChange={(value) => model.mutation.mutate(value)}
+      />
+      {model.query.data?.name ===
+        "onnx-community/Phi-3.5-mini-instruct-onnx-web" && (
+        <ConfidenceThresholdSlider />
+      )}
     </div>
   )
 }
@@ -141,7 +204,7 @@ export const App = () => {
           <AppearanceSettings />
         </AccordionItem>
         <AccordionItem key="block-settings" title="Block Settings">
-          <BlockSettings />
+          <ModelSettings />
         </AccordionItem>
       </Accordion>
     </div>

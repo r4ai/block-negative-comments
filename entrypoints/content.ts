@@ -1,6 +1,6 @@
 import dedent from "dedent"
 import { sendMessage } from "@/utils/messaging"
-import * as storage from "@/utils/storage"
+import { generalSettings, modelSettings } from "@/utils/storage"
 
 class Logger {
   private filters = {
@@ -87,8 +87,6 @@ class BlockNegativeComments {
   private blockedComments: Set<HTMLElement> = new Set()
   private processingComments: TaskQueue = new TaskQueue()
 
-  public confidenceThreshold: number
-
   private running: boolean = false
 
   private selectors = {
@@ -101,12 +99,8 @@ class BlockNegativeComments {
     ytLiveChatTextMessageRendererMessage: "#message",
   }
 
-  constructor({
-    logger,
-    confidenceThreshold,
-  }: { logger: Logger; confidenceThreshold: number }) {
+  constructor({ logger }: { logger: Logger }) {
     this.logger = logger
-    this.confidenceThreshold = confidenceThreshold
 
     let isFirstLoad = true
     this.ytdLiveChatObserver = new MutationObserver((mutations) => {
@@ -237,24 +231,55 @@ class BlockNegativeComments {
         .querySelector(this.selectors.ytLiveChatTextMessageRendererMessage)
         ?.textContent?.trim() ?? ""
     this.processingComments.push(async () => {
-      const res = await sendMessage("analyzeSentiment", { comment })
+      const model = await generalSettings.selectedModel.getValue()
+      const res = await sendMessage("analyzeSentiment", { comment, model })
       this.logger.debug(
         `Sentiment Analysis Result for comment:`,
         `${commentElement.textContent?.substring(0, 20)}...`,
         res,
       )
-      if (
-        res.sentiment === "negative" &&
-        res.confidence > this.confidenceThreshold
-      ) {
-        this.logger.debug(
-          `Blocking negative comment: ${commentElement.textContent}`,
-        )
-        this.blockedComments.add(commentElement)
-      } else {
-        this.logger.debug(`Unblocking comment: ${commentElement.textContent}`)
-        commentElement.style.cssText = originalStyle
-        commentElement.style.transition = "filter 0.3s ease"
+
+      switch (res.modelName) {
+        case "onnx-community/Phi-3.5-mini-instruct-onnx-web": {
+          const settings = await modelSettings[res.modelName].getValue()
+          if (
+            res.sentiment === "negative" &&
+            res.confidence > settings.confidenceThreshold
+          ) {
+            this.logger.debug(
+              `Blocking negative comment: ${commentElement.textContent}`,
+            )
+            this.blockedComments.add(commentElement)
+          } else {
+            this.logger.debug(
+              `Unblocking comment: ${commentElement.textContent}`,
+            )
+            commentElement.style.cssText = originalStyle
+            commentElement.style.transition = "filter 0.3s ease"
+          }
+          break
+        }
+
+        case "tabularisai/multilingual-sentiment-analysis": {
+          const settings = await modelSettings[res.modelName].getValue()
+          if (
+            (res.sentiment === "negative" ||
+              res.sentiment === "very_negative") &&
+            res.score > settings.scoreThreshold
+          ) {
+            this.logger.debug(
+              `Blocking negative comment: ${commentElement.textContent}`,
+            )
+            this.blockedComments.add(commentElement)
+          } else {
+            this.logger.debug(
+              `Unblocking comment: ${commentElement.textContent}`,
+            )
+            commentElement.style.cssText = originalStyle
+            commentElement.style.transition = "filter 0.3s ease"
+          }
+          break
+        }
       }
     })
 
@@ -289,23 +314,18 @@ export default defineContentScript({
       warn: true,
       error: true,
     })
-    const confidenceThreshold = await storage.confidenceThreshold.getValue()
-    const manager = new BlockNegativeComments({ logger, confidenceThreshold })
-    if (await storage.enabled.getValue()) {
+
+    const manager = new BlockNegativeComments({ logger })
+    if (await generalSettings.enabled.getValue()) {
       manager.start()
     }
 
-    storage.enabled.watch((enabled) => {
+    generalSettings.enabled.watch((enabled) => {
       if (enabled) {
         location.reload()
       } else {
         manager.stop()
       }
-    })
-
-    storage.confidenceThreshold.watch((threshold) => {
-      manager.confidenceThreshold = threshold
-      logger.debug(`Confidence threshold updated to: ${threshold}`)
     })
 
     logger.log("YouTubeコメントモザイク機能が初期化されました")

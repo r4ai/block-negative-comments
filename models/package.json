@@ -1,0 +1,10 @@
+{
+  "name": "block-negative-comments-scripts",
+  "scripts": {
+    "convert": "bun run scripts/convert.ts --model tabularisai/multilingual-sentiment-analysis"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.18",
+    "@types/node": "^24.0.13"
+  }
+}
