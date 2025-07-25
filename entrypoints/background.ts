@@ -1,15 +1,15 @@
 import {
-  pipeline,
   env,
+  pipeline,
   TextClassificationPipeline,
   TextGenerationPipeline,
 } from "@huggingface/transformers"
 import dedent from "dedent"
 import {
   type AnalyzeSentimentResult,
-  onMessage,
-  type Models,
   type Model,
+  type Models,
+  onMessage,
 } from "@/utils/messaging"
 
 export default defineBackground(() => {
@@ -99,7 +99,7 @@ export default defineBackground(() => {
   onMessage(
     "analyzeSentiment",
     async ({ data: { comment, model }, sender }) => {
-      let generator = await initPipeline(model)
+      const generator = await initPipeline(model)
 
       if (model.name === "onnx-community/Phi-3.5-mini-instruct-onnx-web") {
         if (!(generator instanceof TextGenerationPipeline)) {

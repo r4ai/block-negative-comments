@@ -4,8 +4,8 @@ import { Slider } from "@heroui/slider"
 import { Switch } from "@heroui/switch"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTheme } from "next-themes"
+import { MODELS, type Model } from "@/utils/messaging"
 import { generalSettings, modelSettings } from "@/utils/storage"
-import { type Model, MODELS } from "@/utils/messaging"
 
 const EnabledSwitch = () => {
   const queryClient = useQueryClient()
