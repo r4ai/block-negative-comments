@@ -26,3 +26,19 @@ export const modelSettings = {
     },
   }),
 } as const satisfies Record<Model["name"], unknown>
+
+export const developmentSettings = {
+  logFilter: storage.defineItem<{
+    debug: boolean
+    info: boolean
+    warn: boolean
+    error: boolean
+  }>("local:logLevel", {
+    fallback: {
+      debug: false,
+      info: true,
+      warn: true,
+      error: true,
+    },
+  }),
+}

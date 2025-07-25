@@ -5,7 +5,7 @@ import { generalSettings, modelSettings } from "@/utils/storage"
 class Logger {
   private filters = {
     debug: true,
-    log: true,
+    info: true,
     warn: true,
     error: true,
   }
@@ -29,7 +29,7 @@ class Logger {
   }
 
   public log(...messages: unknown[]) {
-    if (!this.filters.log) return
+    if (!this.filters.info) return
     console.log(this.prefix, ...messages)
   }
 
@@ -310,7 +310,7 @@ export default defineContentScript({
   async main() {
     const logger = new Logger({
       debug: true,
-      log: true,
+      info: true,
       warn: true,
       error: true,
     })
