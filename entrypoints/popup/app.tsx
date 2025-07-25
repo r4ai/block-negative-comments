@@ -1,5 +1,6 @@
 import { Accordion, AccordionItem } from "@heroui/react"
 import { AppearanceSettings } from "./components/apperance-settings"
+import { DevelopmentSettings } from "./components/development-settings"
 import { Header } from "./components/header"
 import { ModelSettings } from "./components/model-settings"
 
@@ -13,6 +14,9 @@ export const App = () => {
         </AccordionItem>
         <AccordionItem key="block-settings" title="Block Settings">
           <ModelSettings />
+        </AccordionItem>
+        <AccordionItem key="development-settings" title="Development Settings">
+          <DevelopmentSettings />
         </AccordionItem>
       </Accordion>
     </div>

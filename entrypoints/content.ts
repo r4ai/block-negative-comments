@@ -1,6 +1,7 @@
 import dedent from "dedent"
-import { sendMessage } from "@/utils/messaging"
+import { type CommentHistoryItem, sendMessage } from "@/utils/messaging"
 import { generalSettings, modelSettings } from "@/utils/storage"
+import type { PartiallyPartial } from "@/utils/utility-types"
 
 class Logger {
   private filters = {
@@ -238,6 +239,20 @@ class BlockNegativeComments {
         `${commentElement.textContent?.substring(0, 20)}...`,
         res,
       )
+      const commentHistoryItem: PartiallyPartial<CommentHistoryItem, "id"> = {
+        analyzedAt: new Date().toISOString(),
+        comment,
+        result: res,
+      }
+      sendMessage("addCommentToHistory", commentHistoryItem)
+        .then(() => {
+          this.logger.debug(`Saved a comment to history`)
+        })
+        .catch(() => {
+          this.logger.error(
+            `Failed to save a comment to history: ${JSON.stringify(commentHistoryItem)}`,
+          )
+        })
 
       switch (res.modelName) {
         case "onnx-community/Phi-3.5-mini-instruct-onnx-web": {
@@ -308,13 +323,14 @@ class BlockNegativeComments {
 export default defineContentScript({
   matches: ["https://*.youtube.com/*"],
   async main() {
-    const logger = new Logger({
-      debug: true,
-      info: true,
-      warn: true,
-      error: true,
+    // Init logger
+    const logFilter = await developmentSettings.logFilter.getValue()
+    const logger = new Logger(logFilter)
+    developmentSettings.logFilter.watch((newFilter) => {
+      logger.setFilters(newFilter)
     })
 
+    // Init manager
     const manager = new BlockNegativeComments({ logger })
     if (await generalSettings.enabled.getValue()) {
       manager.start()

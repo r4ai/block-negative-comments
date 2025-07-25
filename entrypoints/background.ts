@@ -6,6 +6,10 @@ import {
 } from "@huggingface/transformers"
 import dedent from "dedent"
 import {
+  addCommentToHistory,
+  getAllCommentsFromHistory,
+} from "@/utils/db/comment-history"
+import {
   type AnalyzeSentimentResult,
   type Model,
   type Models,
@@ -192,4 +196,7 @@ export default defineBackground(() => {
       throw new Error(`Unknown model: ${model}`)
     },
   )
+
+  onMessage("addCommentToHistory", ({ data }) => addCommentToHistory(data))
+  onMessage("getAllCommentsFromHistory", () => getAllCommentsFromHistory())
 })

@@ -14,6 +14,7 @@ export default defineConfig({
       "contextMenus",
       "storage",
       "unlimitedStorage",
+      "downloads",
     ],
     host_permissions: ["https://*.youtube.com/*"],
     content_security_policy: {

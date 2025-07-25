@@ -27,6 +27,10 @@ export const modelSettings = {
   }),
 } as const satisfies Record<Model["name"], unknown>
 
+export type ModelSettings = {
+  [K in keyof typeof modelSettings]: (typeof modelSettings)[K]["fallback"]
+}
+
 export const developmentSettings = {
   logFilter: storage.defineItem<{
     debug: boolean
@@ -40,5 +44,8 @@ export const developmentSettings = {
       warn: true,
       error: true,
     },
+  }),
+  maxCommentHistory: storage.defineItem<number>("local:maxCommentHistory", {
+    fallback: 100,
   }),
 }
