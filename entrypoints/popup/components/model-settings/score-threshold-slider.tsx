@@ -7,20 +7,13 @@ type ScoreThresholdSliderProps = {
   model: Models["tabularisai/multilingual-sentiment-analysis"]
 }
 
-export const ScoreThresholdSlider = ({
-  model,
-}: ScoreThresholdSliderProps) => {
+export const ScoreThresholdSlider = ({ model }: ScoreThresholdSliderProps) => {
   const queryClient = useQueryClient()
-  const thresholdQueryKey = [
-    modelSettings[model.name].key,
-    "scoreThreshold",
-  ]
+  const thresholdQueryKey = [modelSettings[model.name].key, "scoreThreshold"]
   const threshold = useQuery({
     queryKey: thresholdQueryKey,
     queryFn: () =>
-      modelSettings[model.name]
-        .getValue()
-        .then((data) => data.scoreThreshold),
+      modelSettings[model.name].getValue().then((data) => data.scoreThreshold),
     refetchOnMount: true,
   })
   const thresholdMutation = useMutation({

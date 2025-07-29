@@ -8,15 +8,15 @@ This is a browser extension that automatically blocks negative comments on YouTu
 
 ## Development Commands
 
-- `bun dev` - Start development server for Chrome
-- `bun dev:firefox` - Start development server for Firefox
-- `bun build` - Build extension for Chrome
-- `bun build:firefox` - Build extension for Firefox
-- `bun zip` - Create ZIP package for Chrome
-- `bun zip:firefox` - Create ZIP package for Firefox
-- `bun compile` - TypeScript compilation check
-- `bun check` - Run Biome linter and formatter
-- `bun check:write` - Run Biome with auto-fix
+- `bun run dev` - Start development server for Chrome
+- `bun run dev:firefox` - Start development server for Firefox
+- `bun run build` - Build extension for Chrome
+- `bun run build:firefox` - Build extension for Firefox
+- `bun run zip` - Create ZIP package for Chrome
+- `bun run zip:firefox` - Create ZIP package for Firefox
+- `bun run compile` - TypeScript compilation check
+- `bun run check` - Run Biome linter and formatter
+- `bun run check:write` - Run Biome with auto-fix
 
 ## Code Architecture
 
