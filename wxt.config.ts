@@ -1,12 +1,14 @@
 import tailwindcss from "@tailwindcss/vite"
-import { defineConfig } from "wxt"
+import { defineConfig, type WxtViteConfig } from "wxt"
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
-  vite: () => ({
-    plugins: [tailwindcss()],
-  }),
+  vite: () =>
+    // See https://github.com/wxt-dev/wxt/issues/1460#issuecomment-2841437586
+    ({
+      plugins: [tailwindcss()],
+    }) as WxtViteConfig,
   manifest: {
     permissions: [
       "activeTab",
