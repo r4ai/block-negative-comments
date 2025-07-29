@@ -1,6 +1,6 @@
 import dedent from "dedent"
 import { type CommentHistoryItem, sendMessage } from "@/utils/messaging"
-import { generalSettings, modelSettings } from "@/utils/storage"
+import { generalSettings, modelSettings, developmentSettings } from "@/utils/storage"
 import type { PartiallyPartial } from "@/utils/utility-types"
 
 class Logger {

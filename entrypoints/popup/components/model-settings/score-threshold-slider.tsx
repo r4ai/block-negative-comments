@@ -3,24 +3,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { Models } from "@/utils/messaging"
 import { modelSettings } from "@/utils/storage"
 
-type ConfidenceThresholdSliderProps = {
-  model: Models["onnx-community/Phi-3.5-mini-instruct-onnx-web"]
+type ScoreThresholdSliderProps = {
+  model: Models["tabularisai/multilingual-sentiment-analysis"]
 }
 
-export const ConfidenceThresholdSlider = ({
+export const ScoreThresholdSlider = ({
   model,
-}: ConfidenceThresholdSliderProps) => {
+}: ScoreThresholdSliderProps) => {
   const queryClient = useQueryClient()
   const thresholdQueryKey = [
     modelSettings[model.name].key,
-    "confidenceThreshold",
+    "scoreThreshold",
   ]
   const threshold = useQuery({
     queryKey: thresholdQueryKey,
     queryFn: () =>
       modelSettings[model.name]
         .getValue()
-        .then((data) => data.confidenceThreshold),
+        .then((data) => data.scoreThreshold),
     refetchOnMount: true,
   })
   const thresholdMutation = useMutation({
@@ -28,7 +28,7 @@ export const ConfidenceThresholdSlider = ({
       const currentSettings = await modelSettings[model.name].getValue()
       return modelSettings[model.name].setValue({
         ...currentSettings,
-        confidenceThreshold: value,
+        scoreThreshold: value,
       })
     },
     onSuccess: () => {
@@ -40,7 +40,7 @@ export const ConfidenceThresholdSlider = ({
 
   return (
     <Slider
-      label="Confidence Threshold"
+      label="Score Threshold"
       value={threshold.data}
       isDisabled={threshold.isLoading}
       minValue={0}
