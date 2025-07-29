@@ -15,6 +15,7 @@ import {
   type Models,
   onMessage,
 } from "@/utils/messaging"
+import { modelSettings } from "@/utils/storage"
 
 export default defineBackground(() => {
   let generator: TextGenerationPipeline | TextClassificationPipeline | null =
@@ -109,26 +110,18 @@ export default defineBackground(() => {
         if (!(generator instanceof TextGenerationPipeline)) {
           throw new Error("Generator is not a TextGenerationPipeline")
         }
+        const settings =
+          await modelSettings[
+            "onnx-community/Phi-3.5-mini-instruct-onnx-web"
+          ].getValue()
         const messages = [
           {
             role: "system",
-            content: dedent`
-              You are a helpful assistant that analyzes the sentiment of text.
-              Especially, you detect negative comments about F1 drivers.
-            `,
+            content: settings.systemPrompt,
           },
           {
             role: "user",
-            content: dedent`
-              Analyze the sentiment of the input text and return the result in following format:
-
-              sentiment:positive|negative|neutral
-              confidence:0.0-1.0
-
-              Input: ${comment}
-
-              Output:
-            `,
+            content: settings.userPrompt.replace("{comment}", comment),
           },
         ]
         const generated = await generator(messages, {

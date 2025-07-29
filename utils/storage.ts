@@ -20,9 +20,15 @@ export const modelSettings = {
   }),
   "onnx-community/Phi-3.5-mini-instruct-onnx-web": storage.defineItem<{
     confidenceThreshold: number
+    systemPrompt: string
+    userPrompt: string
   }>("local:phi-3.5-mini-instruct", {
     fallback: {
       confidenceThreshold: 0.5,
+      systemPrompt:
+        "You are a helpful assistant that analyzes the sentiment of text.\nEspecially, you detect negative comments about F1 drivers.",
+      userPrompt:
+        "Analyze the sentiment of the input text and return the result in following format:\n\nsentiment:positive|negative|neutral\nconfidence:0.0-1.0\n\nInput: {comment}\n\nOutput:",
     },
   }),
 } as const satisfies Record<Model["name"], unknown>
